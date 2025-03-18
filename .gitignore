@@ -1,0 +1,160 @@
+# C language
+# -------------------------------------------------------------------
+# Compile commands for cquery
+compile_commands.json
+
+# Xmake
+.xmake
+
+# Out folder
+out/
+
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+
+# Code coverage
+*.gcda
+*.gcno
+coverage.info
+coverage_html/
+
+# Doxygen output
+docs/doxygen_out
+
+# Editor files
+# -------------------------------------------------------------------
+*.swp
+.ycm_extra_conf.py
+*.swo
+
+
+
+# Gurobi
+# -------------------------------------------------------------------
+gurobi.log
+
+
+# Tags
+# -------------------------------------------------------------------
+tags
+.tags
+.tags1
+TAGS
+
+# C extensions
+*.so
+
+# Distribution / packaging
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+lib/
+lib64/
+parts/
+sdist/
+var/
+.installed.cfg
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+.hypothesis/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+
+# dotenv
+.env
+
+# virtualenv
+.venv/
+venv/
+ENV/
+
+
+# Emacs
+\#*\#
+.\#*
+*~
+
+# Clang completer
+# -------------------------------------------------------------------
+.clang_complete
+
+# CMake Files
+# -------------------------------------------------------------------
+*.stamp
+
+.
