@@ -1,0 +1,11 @@
+compilation_database_dir: ./build/
+output_directory: diagrams
+diagrams:
+  HeatSolver:
+    type: class
+    glob:
+      - heatsolver/src/*.cpp
+    using_namespace: heatsolver
+    include:
+      namespaces:
+        - heatsolver

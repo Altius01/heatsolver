@@ -1,0 +1,290 @@
+@startuml
+class "NDArray::FlatIterator<false>" as C_0016616554862329222682
+class C_0016616554862329222682 {
+__
+}
+class "NDArray::FlatIterator<true>" as C_0011862673902016881280
+class C_0011862673902016881280 {
+__
+}
+abstract "NDArray<T,size_t Dim,Tref=T &,Tconstref=const T &>" as C_0009825857687988758268
+abstract C_0009825857687988758268 {
++~NDArray() = default : void
+..
++begin() : FlatIterator<false>
++begin() const : FlatIterator<true>
++end() : FlatIterator<false>
++end() const : FlatIterator<true>
+{abstract} +flat_index(const index_type & index) const noexcept = 0 : size_t
+{abstract} +shape() const noexcept = 0 : const index_type &
+{abstract} +unflat_index(size_t index) const noexcept = 0 : index_type
+{abstract} +value(const index_type & index) = 0 : value_reference
+{abstract} +value(const index_type & index) const = 0 : value_const_reference
+{abstract} +value(const cindex_type & index) const = 0 : value_type
+__
+{static} +kDim : const size_t
+}
+class "NDArray<T,Dim,Tref,Tconstref>" as C_0017440626627644999980
+class C_0017440626627644999980 {
+__
+}
+class "NDArray::FlatIterator<_Bool IsConst>" as C_0003947810917872972931
+class C_0003947810917872972931 {
++operator(const FlatIterator<IsConst> & rhs) const : bool
++operator(const FlatIterator<IsConst> & rhs) const : bool
++operator!=(FlatIterator<IsConst> other) const : bool
++operator*() const : reference
++operator+(difference_type rhs) const : FlatIterator<IsConst>
++operator++() : FlatIterator<IsConst> &
++operator++(int) : FlatIterator<IsConst>
++operator+=(difference_type rhs) : FlatIterator<IsConst> &
++operator-(const FlatIterator<IsConst> & rhs) const : difference_type
++operator-(difference_type rhs) const : FlatIterator<IsConst>
++operator--() : FlatIterator<IsConst> &
++operator--(int) : FlatIterator<IsConst>
++operator-=(difference_type rhs) : FlatIterator<IsConst> &
++operator==(FlatIterator<IsConst> other) const : bool
++operator>(const FlatIterator<IsConst> & rhs) const : bool
++operator>=(const FlatIterator<IsConst> & rhs) const : bool
+..
++FlatIterator(array_ptr_t array, size_t index = 0) : void
++~FlatIterator() = default : void
+__
+#m_array : array_ptr_t
+#m_index : size_t
+}
+abstract "SpaceTimeMesh<size_t Dim>" as C_0007305045609027234693
+abstract C_0007305045609027234693 {
++~SpaceTimeMesh() = default : void
+..
++check_boundary(const index_type & index) const noexcept : std::optional<size_t>
+{abstract} +dx() const noexcept = 0 : const cindex_type &
+{abstract} +index_to_position(const index_type & index) const noexcept = 0 : cindex_type
+{abstract} +index_to_position(const cindex_type & index) const noexcept = 0 : cindex_type
+{abstract} +origin() const noexcept = 0 : const cindex_type &
+{abstract} +origin(cindex_type size) noexcept = 0 : void
+{abstract} +position_to_index(const cindex_type & pos) const noexcept = 0 : cindex_type
+{abstract} +shape() const noexcept = 0 : const index_type &
+{abstract} +shape(index_type shape) noexcept = 0 : void
+{abstract} +size() const noexcept = 0 : const cindex_type &
+{abstract} +size(cindex_type size) noexcept = 0 : void
+__
+{static} +kDim : const size_t
+}
+class "NDArray<double,kDim>" as C_0011478039826150713096
+class C_0011478039826150713096 {
+__
+}
+class "ProblemSpaceTimeFunction" as C_0016213296617748508461
+class C_0016213296617748508461 {
++ProblemSpaceTimeFunction(std::function<cindex_type (const cindex_type &)> index_to_position, std::function<value_type (const cindex_type &)> foo, const index_type & shape = {}) : void
++ProblemSpaceTimeFunction(const ProblemSpaceTimeFunction & other) : void
++ProblemSpaceTimeFunction(ProblemSpaceTimeFunction && other) noexcept : void
++~ProblemSpaceTimeFunction() : void
+..
++operator=(const ProblemSpaceTimeFunction & other) : ProblemSpaceTimeFunction &
++operator=(ProblemSpaceTimeFunction && other) noexcept : ProblemSpaceTimeFunction &
+..
++flat_index(const index_type & index) const noexcept : size_t
++shape() const noexcept : const index_type &
++shape(index_type index) noexcept : index_type &
++shape(const index_type & index) noexcept : index_type &
++shape(index_type && index) noexcept : index_type &
+{static} #to_string(const index_type & index) : std::string
++unflat_index(size_t index) const noexcept : index_type
++value(const index_type & index) : value_reference
++value(const index_type & index) const : value_const_reference
++value(const cindex_type & index) const : value_type
+__
+#m_foo : std::function<value_type (const cindex_type &)>
+#m_index_to_position : std::function<cindex_type (const cindex_type &)>
+#m_shape : index_type
+}
+class "ProblemSpaceTimeFunctionArray" as C_0014810023141560882988
+class C_0014810023141560882988 {
++ProblemSpaceTimeFunctionArray(const index_type & shape) : void
++ProblemSpaceTimeFunctionArray(const index_type & shape, std::vector<value_type> data) : void
++ProblemSpaceTimeFunctionArray(const ProblemSpaceTimeFunctionArray & other) : void
++ProblemSpaceTimeFunctionArray(ProblemSpaceTimeFunctionArray && other) noexcept : void
++~ProblemSpaceTimeFunctionArray() = default : void
+..
++operator=(const ProblemSpaceTimeFunctionArray & other) : ProblemSpaceTimeFunctionArray &
++operator=(ProblemSpaceTimeFunctionArray && other) noexcept : ProblemSpaceTimeFunctionArray &
+..
+#check_index(const index_type & index) const noexcept : bool
++fill(value_type value) : void
++flat_index(const index_type & index) const noexcept : size_t
+#interpolate_value(const cindex_type & index) const : value_type
++shape() const noexcept : const index_type &
++unflat_index(size_t index) const noexcept : index_type
++value(const index_type & index) : value_type &
++value(const index_type & index) const : const value_type &
++value(const cindex_type & index) const : value_type
+__
+#m_data : std::vector<value_type>
+#m_shape : index_type
+}
+class "ProblemSpaceFunctionArray" as C_0009996463378173233082
+class C_0009996463378173233082 {
++ProblemSpaceFunctionArray(const index_type & shape) : void
++ProblemSpaceFunctionArray(const index_type & shape, std::vector<value_type> data) : void
++ProblemSpaceFunctionArray(const ProblemSpaceFunctionArray & other) = default : void
++ProblemSpaceFunctionArray(ProblemSpaceFunctionArray && other) noexcept = default : void
+..
++operator=(const ProblemSpaceFunctionArray & other) = default : ProblemSpaceFunctionArray &
++operator=(ProblemSpaceFunctionArray && other) noexcept = default : ProblemSpaceFunctionArray &
+..
+{static} -strip_time_dim(const index_type & index) : index_type
+{static} -strip_time_index(const index_type & index) : index_type
+{static} -strip_time_index(const cindex_type & index) : cindex_type
++value(const index_type & index) : value_type &
++value(const index_type & index) const : const value_type &
++value(const cindex_type & index) const : value_type
+__
+}
+class "SpaceTimeMesh<kDim>" as C_0013459334037468727131
+class C_0013459334037468727131 {
+__
+}
+class "ProblemMesh" as C_0016057783232401757164
+class C_0016057783232401757164 {
++ProblemMesh() = default : void
+..
++dx() const noexcept : const cindex_type &
++index_to_position(const index_type & index) const noexcept : cindex_type
++index_to_position(const cindex_type & index) const noexcept : cindex_type
++origin() const noexcept : const cindex_type &
++origin(cindex_type size) noexcept : void
++position_to_index(const cindex_type & pos) const noexcept : cindex_type
++shape() const noexcept : const index_type &
++shape(index_type shape) noexcept : void
++size() const noexcept : const cindex_type &
++size(cindex_type size) noexcept : void
+-update_dx() : void
+__
+-m_dx : cindex_type
+-m_origin : cindex_type
+-m_shape : index_type
+-m_size : cindex_type
+}
+class "HeatProblemData" as C_0005857172681271668041
+class C_0005857172681271668041 {
+__
++coefficient : std::shared_ptr<const Function_t>
++dirichlet_boundary : std::array<std::shared_ptr<const Function_t>,kSpaceDim>
++heat_source : std::shared_ptr<const Function_t>
++mesh : std::shared_ptr<const Mesh_t>
++temperature : std::shared_ptr<Function_t>
+}
+class "TriDiagMatrixSolver" as C_0012746262218332651749
+class C_0012746262218332651749 {
++TriDiagMatrixSolver() = default : void
++TriDiagMatrixSolver(size_t size) : void
+..
++print_system() const noexcept : void
++solve(const std::function<void (size_t,double)> & solution_setter) noexcept : void
+__
++m_diag : std::vector<double>
++m_lower : std::vector<double>
++m_p : std::vector<double>
++m_q : std::vector<double>
++m_rhs : std::vector<double>
++m_upper : std::vector<double>
+}
+class "HeatSolver" as C_0017805295521286852666
+class C_0017805295521286852666 {
++HeatSolver(std::shared_ptr<HeatProblemData> data) : void
+..
+#assemble_and_solve_system(size_t dim, const HeatProblemData::Function_t & prev_solution, HeatProblemData::Function_t & next_solution, Index_t index, double time_step) : void
++solve() : void
+#time_step(size_t time_index) : void
+__
+#m_cindex_time_step : double
+#m_data : std::shared_ptr<HeatProblemData>
+#m_temporary_solution : std::shared_ptr<ProblemSpaceFunctionArray>
+}
+class "HeatAdjointSolver" as C_0001338551524381348715
+class C_0001338551524381348715 {
++HeatAdjointSolver(std::shared_ptr<HeatProblemData> data) : void
+..
+#assemble_and_solve_system(size_t dim, const HeatProblemData::Function_t & prev_solution, HeatProblemData::Function_t & next_solution, Index_t index, double time_step) : void
+#time_step(size_t time_index) : void
+__
+}
+class "AdjointCoefficientSolver" as C_0011820732267550100992
+class C_0011820732267550100992 {
++AdjointCoefficientSolver(std::shared_ptr<HeatProblemData::Mesh_t> mesh, std::shared_ptr<HeatProblemData::Function_t> target_temperature, std::shared_ptr<HeatProblemData::Function_t> heat_source, std::shared_ptr<HeatProblemData::Function_t> coefficient) : void
+..
+-addGradRegularisation(std::shared_ptr<HeatProblemData::Function_t> & gradient) : void
+-calculate_coefficient_gradient() : void
+-getError() const : HeatProblemData::Function_t::value_type
++solve(size_t max_iterations, size_t check_stop_conditions_per_steps = 0, double ans_rtol_stop_condition = 1e-6) : std::shared_ptr<HeatProblemData::Function_t>
+-solve_step(double beta_1, double beta_2) : void
+__
+-m_adjoint_data : std::shared_ptr<HeatProblemData>
+-m_adjoint_solver : std::shared_ptr<HeatAdjointSolver>
+-m_coefficient : std::shared_ptr<HeatProblemData::Function_t>
+-m_data : std::shared_ptr<HeatProblemData>
++m_grad_reg_multiplier : HeatProblemData::Function_t::value_type
++m_learning_rate : HeatProblemData::Function_t::value_type
+-m_mean_coefficient_gradient : std::shared_ptr<HeatProblemData::Function_t>
+-m_mean_squared_coefficient_gradient : std::shared_ptr<HeatProblemData::Function_t>
++m_momentum_decay_multiplier : HeatProblemData::Function_t::value_type
++m_norm_reg_multiplier : HeatProblemData::Function_t::value_type
+-m_solver : std::shared_ptr<HeatSolver>
++m_squared_momentum_decay_multiplier : HeatProblemData::Function_t::value_type
+-m_target_temperature : std::shared_ptr<HeatProblemData::Function_t>
+-m_target_temperature_norm : HeatProblemData::Function_t::value_type
+}
+C_0016616554862329222682 ..|> C_0003947810917872972931
+C_0011862673902016881280 ..|> C_0003947810917872972931
+C_0009825857687988758268 ..> C_0016616554862329222682
+C_0009825857687988758268 ..> C_0003947810917872972931
+C_0009825857687988758268 ..> C_0011862673902016881280
+C_0017440626627644999980 ..|> C_0009825857687988758268
+C_0003947810917872972931 --+ C_0009825857687988758268
+C_0003947810917872972931 ..> C_0017440626627644999980
+C_0003947810917872972931 --> C_0009825857687988758268 : #m_array
+C_0011478039826150713096 ..|> C_0009825857687988758268
+C_0011478039826150713096 <|-- C_0016213296617748508461
+C_0011478039826150713096 <|-- C_0014810023141560882988
+C_0014810023141560882988 <|-- C_0009996463378173233082
+C_0013459334037468727131 ..|> C_0007305045609027234693
+C_0013459334037468727131 <|-- C_0016057783232401757164
+C_0005857172681271668041 --> C_0013459334037468727131 : +mesh
+C_0005857172681271668041 --> C_0007305045609027234693 : +mesh
+C_0005857172681271668041 --> C_0011478039826150713096 : +temperature
+C_0005857172681271668041 --> C_0009825857687988758268 : +temperature
+C_0005857172681271668041 --> C_0011478039826150713096 : +heat_source
+C_0005857172681271668041 --> C_0009825857687988758268 : +heat_source
+C_0005857172681271668041 --> C_0011478039826150713096 : +coefficient
+C_0005857172681271668041 --> C_0009825857687988758268 : +coefficient
+C_0005857172681271668041 o-- C_0011478039826150713096 : +dirichlet_boundary
+C_0005857172681271668041 o-- C_0009825857687988758268 : +dirichlet_boundary
+C_0017805295521286852666 ..> C_0011478039826150713096
+C_0017805295521286852666 ..> C_0009825857687988758268
+C_0017805295521286852666 --> C_0005857172681271668041 : #m_data
+C_0017805295521286852666 --> C_0009996463378173233082 : #m_temporary_solution
+C_0017805295521286852666 <.. C_0012746262218332651749 : +<<friend>>
+C_0001338551524381348715 ..> C_0005857172681271668041
+C_0001338551524381348715 ..> C_0011478039826150713096
+C_0001338551524381348715 ..> C_0009825857687988758268
+C_0017805295521286852666 <|-- C_0001338551524381348715
+C_0011820732267550100992 ..> C_0013459334037468727131
+C_0011820732267550100992 ..> C_0007305045609027234693
+C_0011820732267550100992 --> C_0005857172681271668041 : -m_data
+C_0011820732267550100992 --> C_0005857172681271668041 : -m_adjoint_data
+C_0011820732267550100992 --> C_0011478039826150713096 : -m_target_temperature
+C_0011820732267550100992 --> C_0009825857687988758268 : -m_target_temperature
+C_0011820732267550100992 --> C_0011478039826150713096 : -m_coefficient
+C_0011820732267550100992 --> C_0009825857687988758268 : -m_coefficient
+C_0011820732267550100992 --> C_0011478039826150713096 : -m_mean_coefficient_gradient
+C_0011820732267550100992 --> C_0009825857687988758268 : -m_mean_coefficient_gradient
+C_0011820732267550100992 --> C_0011478039826150713096 : -m_mean_squared_coefficient_gradient
+C_0011820732267550100992 --> C_0009825857687988758268 : -m_mean_squared_coefficient_gradient
+C_0011820732267550100992 --> C_0017805295521286852666 : -m_solver
+C_0011820732267550100992 --> C_0001338551524381348715 : -m_adjoint_solver
+
+'Generated with clang-uml, version 0.6.1
+'LLVM version clang version 19.1.7
+@enduml

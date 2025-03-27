@@ -1,10 +1,12 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <memory>
 
-#include "inverse_solver.h"
+#include "adjoint_solver.h"
 #include "io.h"
 #include "solver.h"
+#include "view.h"
 #include "view_impl.h"
 
 constexpr size_t kDim = 2;
@@ -25,74 +27,25 @@ double initial_temperature(heatsolver::CIndex_t index) {
   return sin(M_PI * index[0]) * sin(M_PI * index[1]);
 }
 
-void print_solution(const std::vector<std::vector<double>>& u) {
-  for (const auto& i : u) {
-    for (double j : i) {
-      printf("%.2f ", j);
-    }
-    std::cout << "\n";
-  }
-  std::cout << "\n\n";
-}
-
-void print_solution(const NDArray<double, 3>& u, size_t time_index) {
-  const auto shape = u.shape();
-  Index_t idx = {0, 0, time_index};
-  for (size_t x_it = 0; x_it < shape[0]; ++x_it) {
-    idx[0] = x_it;
-    for (size_t y_it = 0; y_it < shape[1]; ++y_it) {
-      idx[1] = y_it;
-      printf("%.2f ", u.value(idx));
-    }
-    std::cout << "\n";
-  }
-  std::cout << "\n\n";
-}
-
-void set_true_solution(const ProblemMesh& mesh,
-                       std::vector<std::vector<double>>& u, double time) {
-  const auto& shape = mesh.shape();
-  for (size_t x_it = 0; x_it < shape[0]; ++x_it) {
-    for (size_t y_it = 0; y_it < shape[1]; ++y_it) {
-      auto pos = mesh.index_to_position(Index_t({x_it, y_it, 0}));
-      auto x = pos[0];
-      auto y = pos[1];
-
-      u[x_it][y_it] =
-          sin(M_PI * x) * sin(M_PI * y) * exp(-2 * M_PI * M_PI * time);
-    }
-  }
-}
-
-double l2_error(const std::vector<std::vector<double>>& set_true_solution,
-                const NDArray<double, 3>& u) {
-  const auto& shape = u.shape();
-  double error = 0;
-  Index_t idx = {0, 0, shape[2] - 1};
-  for (size_t x_it = 0; x_it < shape[0]; ++x_it) {
-    idx[0] = x_it;
-    for (size_t y_it = 0; y_it < shape[1]; ++y_it) {
-      idx[1] = y_it;
-      error += (u.value(idx) - set_true_solution[x_it][y_it]) *
-               (u.value(idx) - set_true_solution[x_it][y_it]);
-    }
-  }
-  return sqrt(error) / (shape[0] * shape[1]);
-}
-
 }  // namespace
 
 using namespace heatsolver;  // NOLINT
 
 int main(int /*argc*/, char* /*argv*/[]) {
   auto mesh = std::make_shared<ProblemMesh>();  // Mesh2D();
+  // Задаем сетку задачи
   size_t shape_x = 11;
-  size_t shape_y = 5;
-  size_t shape_time = 100;
+  size_t shape_y = 11;
+  size_t shape_time = 10;
 
-  double size_x = (static_cast<double>(shape_x) / (shape_x - 1)) * 1.0;
-  double size_y = (static_cast<double>(shape_y) / (shape_y - 1)) * 1.0;
-  double time = (static_cast<double>(shape_time) / (shape_time - 1)) * 0.05;
+  // Задаем физический размер сетки (учитываем, что значения храняться в центрах
+  // вокселей в пространстве-времени)
+  double size_x_m = 1.0;
+  double size_y_m = 1.0;
+  double time_sec = 0.05;
+  double size_x = (static_cast<double>(shape_x) / (shape_x - 1)) * size_x_m;
+  double size_y = (static_cast<double>(shape_y) / (shape_y - 1)) * size_y_m;
+  double time = (static_cast<double>(shape_time) / (shape_time - 1)) * time_sec;
 
   mesh->shape({shape_x, shape_y, shape_time});
   mesh->size({size_x, size_y, time});
@@ -100,8 +53,10 @@ int main(int /*argc*/, char* /*argv*/[]) {
   const auto dx = mesh->dx();
   const auto shape = mesh->shape();
 
+  // Сдвигаем поцизию точки с индексом [0, 0, 0] в 0
   mesh->origin({-dx[0] * 0.5, -dx[1] * 0.5, -dx[2] * 0.5});
   const auto origin = mesh->origin();
+
   std::cout << "Shape: x:" << shape_x << ", y:" << shape_y
             << ", t:" << shape_time << "\n";
   std::cout << "Size: x:" << size_x << ", y:" << size_y << ", t:" << time
@@ -122,9 +77,11 @@ int main(int /*argc*/, char* /*argv*/[]) {
   auto x_boundary =
       std::make_shared<ProblemSpaceTimeFunctionArray>(x_boundary_shape);
 
-  Index_t idx = {0, 0, 0};
-  CIndex_t pos{};
+  // Устанавливаем начальные условия
+#pragma omp parallel for
   for (size_t i = 0; i < shape_x; ++i) {
+    CIndex_t pos{};
+    Index_t idx = {0, 0, 0};
     idx[0] = i;
     for (size_t j = 0; j < shape_y; ++j) {
       idx[1] = j;
@@ -142,8 +99,14 @@ int main(int /*argc*/, char* /*argv*/[]) {
     }
   }
 
-  Index_t bond_idx{};
+  // Граница параллельная оси x храниться в NDArray с shape = (shape_x, 2,
+  // shape_time), где второй по счету индекс отвечает за то - левая граница или
+  // правая
+#pragma omp parallel for
   for (size_t i = 0; i < shape_x; ++i) {
+    Index_t bond_idx{};
+    CIndex_t pos{};
+    Index_t idx = {0, 0, 0};
     idx[0] = i;
     bond_idx[0] = i;
     for (size_t k = 0; k < shape_time; ++k) {
@@ -159,7 +122,11 @@ int main(int /*argc*/, char* /*argv*/[]) {
     }
   }
 
+#pragma omp parallel for
   for (size_t i = 0; i < shape_y; ++i) {
+    Index_t bond_idx{};
+    CIndex_t pos{};
+    Index_t idx = {0, 0, 0};
     idx[1] = i;
     bond_idx[1] = i;
     for (size_t k = 0; k < shape_time; ++k) {
@@ -176,53 +143,95 @@ int main(int /*argc*/, char* /*argv*/[]) {
     }
   }
 
-  HeatProblemData problem{
-      mesh, temperature, heat_source, coefficient, {x_boundary, y_boundary}};
+  auto problem = std::make_shared<HeatProblemData>();
+  problem->mesh = mesh;
+  problem->temperature = temperature;
+  problem->heat_source = heat_source;
+  problem->coefficient = coefficient;
+  problem->dirichlet_boundary =
+      std::array<std::shared_ptr<const HeatProblemData::Function_t>, kSpaceDim>(
+          {x_boundary, y_boundary});
 
   HeatSolver solver(problem);
 
-  std::cout << "Initial Solution:\n";
-  print_solution(*problem.temperature, 0);
-
   solver.solve();
 
-  std::cout << "Solution:\n";
-  print_solution(*problem.temperature, shape_time - 1);
+  // Точное решение в случае равномерного коэффициента теплопроводности равного
+  // 1
+  auto u_true_foo = std::make_shared<ProblemSpaceTimeFunction>(
+      [&](const ProblemSpaceTimeFunction::cindex_type& index) {
+        return mesh->index_to_position(index);
+      },
+      [&](const ProblemSpaceTimeFunction::cindex_type& index) {
+        auto x = index[0];
+        auto y = index[1];
+        auto t = index[2];
+        return sin(M_PI * x) * sin(M_PI * y) * exp(-2 * M_PI * M_PI * t);
+      },
+      shape);
 
-  std::vector<std::vector<double>> u_true(shape_x,
-                                          std::vector<double>(shape_y));
-  set_true_solution(*mesh, u_true, time);
+  // Записываем точное решение на диск
+  application::io::writeSpaceTimeFunction(*u_true_foo, "true_temperature",
+                                          "true_solution.h5");
 
-  std::cout << "True solution:\n";
-  print_solution(u_true);
+  auto mean_l2_error_forward_problem =
+      l2_diff_norm(*u_true_foo, *(problem->temperature));
+  std::cout << "Forward problem solution Error: "
+            << mean_l2_error_forward_problem << "\n";
 
-  std::cout << "Error: " << l2_error(u_true, *(problem.temperature)) << "\n";
+  // Записываем решение на диск
+  application::io::writeSpaceTimeFunction(*(problem->temperature),
+                                          "temperature", "solution.h5");
 
-  writeSpaceTimeFunction(*(problem.temperature), "temperature", "solution.h5");
+  // InverseSolverData inverse_data{mesh, problem->temperature,
+  //                                problem->heat_source, coefficient};
+  //
+  // InverseSolver inverse_solver(inverse_data);
+  // inverse_solver.solve(0);
 
-  InverseSolverData inverse_data{mesh, problem.temperature, problem.heat_source,
-                                 coefficient};
+  auto copy_forward_solution = std::make_shared<ProblemSpaceTimeFunctionArray>(
+      problem->temperature->shape());
+  std::copy(problem->temperature->begin(), problem->temperature->end(),
+            copy_forward_solution->begin());
 
-  InverseSolver inverse_solver(inverse_data);
-  auto coef_sol = inverse_solver.solve(1e-1);
+  // Задаем начальное приближение для коэффициента теплопроводности
+  auto adjoint_start_coefficient =
+      std::make_shared<ProblemSpaceFunctionArray>(shape);
+  adjoint_start_coefficient->fill(0);
 
-  // std::cout << "Coefficient solution:\n";
-  for (size_t i = 0; i < shape_x; i++) {
-    for (size_t j = 0; j < shape_y; j++) {
-      // std::cout << coef_sol((i * shape_y) + j) << " ";
-      coefficient->value(Index_t({i, j, 0})) = coef_sol((i * shape_y) + j);
-    }
-    // std::cout << "\n";
-  }
+  AdjointCoefficientSolver adjoint_coefficient_solver(
+      mesh, copy_forward_solution, heat_source, adjoint_start_coefficient);
 
-  // std::cout << "Initial Solution:\n";
-  // print_solution(*problem.temperature, 0);
+  // Конфигурируем солвер для обратной задачи
+  adjoint_coefficient_solver.m_momentum_decay_multiplier = 0.9;
+  adjoint_coefficient_solver.m_squared_momentum_decay_multiplier = 0.8;
+  adjoint_coefficient_solver.m_learning_rate = 1e-1;
+  adjoint_coefficient_solver.m_grad_reg_multiplier = 1e-8;
+  adjoint_coefficient_solver.m_norm_reg_multiplier = 1e-5;
 
+  auto adjoint_coefficient = adjoint_coefficient_solver.solve(10000, 100, 1e-6);
+
+  problem->coefficient = adjoint_coefficient;
   solver.solve();
 
-  // std::cout << "Solution:\n";
-  // print_solution(*problem.temperature, shape_time - 1);
+  // Записываем решение обратной задачи на диск
+  application::io::writeSpaceTimeFunction(
+      *adjoint_coefficient, "adjoint_coefficient", "adjoint_coefficient.h5");
 
-  std::cout << "L2 Error: " << l2_error(u_true, *(problem.temperature)) << "\n";
+  // Записываем реальный коэффициент тпелопроводности
+  application::io::writeSpaceTimeFunction(*coefficient, "coefficient",
+                                          "coefficient.h5");
+
+  // Записываем температуру полученную решением прямой задачи с учетом
+  // найденного коэффициента теплопроводности
+  application::io::writeSpaceTimeFunction(
+      *problem->temperature, "adjoint_solution", "adjoint_solution.h5");
+
+  auto true_sol_norm = l2_norm(*copy_forward_solution);
+
+  std::cout << "L2 Error: "
+            << l2_diff_norm(*copy_forward_solution, *(problem->temperature)) /
+                   true_sol_norm
+            << "\n";
   return 0;
 }

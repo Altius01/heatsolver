@@ -1,16 +1,97 @@
 #pragma once
 
+#include <algorithm>
+#include <cstring>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "view.h"
 
 namespace heatsolver {
+
+// Implementation for 2D spatial case
 constexpr size_t kDim = 3;
 constexpr size_t kSpaceDim = 2;
 using Index_t = NDIndex_t<kDim>;
 using CIndex_t = NDCIndex_t<kDim>;
 
+class ProblemSpaceTimeFunction : public NDArray<double, kDim> {
+ public:
+  explicit ProblemSpaceTimeFunction(
+      std::function<cindex_type(const cindex_type&)> index_to_position,
+      std::function<value_type(const cindex_type&)> foo,
+      const index_type& shape = {});
+
+  ~ProblemSpaceTimeFunction() override;
+
+  ProblemSpaceTimeFunction(const ProblemSpaceTimeFunction& other) {
+    m_foo = other.m_foo;
+    m_index_to_position = other.m_index_to_position;
+  }
+
+  ProblemSpaceTimeFunction& operator=(const ProblemSpaceTimeFunction& other) {
+    if (this == &other) {
+      return *this;
+    }
+    m_foo = other.m_foo;
+    m_index_to_position = other.m_index_to_position;
+    return *this;
+  }
+
+  ProblemSpaceTimeFunction(ProblemSpaceTimeFunction&& other) noexcept {
+    m_foo = std::move(other.m_foo);
+    m_index_to_position = std::move(other.m_index_to_position);
+  }
+
+  ProblemSpaceTimeFunction& operator=(
+      ProblemSpaceTimeFunction&& other) noexcept {
+    m_foo = std::move(other.m_foo);
+    m_index_to_position = std::move(other.m_index_to_position);
+    return *this;
+  }
+
+  const index_type& shape() const noexcept override { return m_shape; };
+
+  index_type& shape(index_type index) noexcept { return m_shape = index; };
+  index_type& shape(const index_type& index) noexcept {
+    return m_shape = index;
+  };
+  index_type& shape(index_type&& index) noexcept {
+    return m_shape = std::move(index);
+  };
+
+  index_type unflat_index(size_t index) const noexcept override;
+
+  size_t flat_index(const index_type& index) const noexcept override;
+
+  value_reference value(const index_type& index) override;
+  value_const_reference value(const index_type& index) const override;
+  /**
+   * @brief Return linear interpolated data.
+   */
+  value_type value(const cindex_type& index) const override {
+    return m_foo(m_index_to_position(index));
+  }
+
+ protected:
+  index_type m_shape{};
+  std::function<value_type(const cindex_type&)> m_foo;
+  std::function<cindex_type(const cindex_type&)> m_index_to_position;
+
+  static std::string to_string(const index_type& index) {
+    std::string result;
+    for (auto i : index) {
+      result += std::to_string(i) + " ";
+    }
+    return result;
+  }
+};
+
+/**
+ * @brief Class for storing discrete scalar spatial 2D and time field: field(x,
+ * y, t)
+ */
 class ProblemSpaceTimeFunctionArray : public NDArray<double, kDim> {
  public:
   explicit ProblemSpaceTimeFunctionArray(const index_type& shape)
@@ -27,6 +108,10 @@ class ProblemSpaceTimeFunctionArray : public NDArray<double, kDim> {
 
   ProblemSpaceTimeFunctionArray& operator=(
       const ProblemSpaceTimeFunctionArray& other) {
+    if (this == &other) {
+      return *this;
+    }
+
     m_shape = other.m_shape;
     m_data = other.m_data;
     return *this;
@@ -47,6 +132,10 @@ class ProblemSpaceTimeFunctionArray : public NDArray<double, kDim> {
 
   ~ProblemSpaceTimeFunctionArray() override = default;
 
+  void fill(value_type value) {
+    std::fill(m_data.begin(), m_data.end(), value);
+  }
+
   const index_type& shape() const noexcept override { return m_shape; }
 
   index_type unflat_index(size_t index) const noexcept override;
@@ -56,7 +145,7 @@ class ProblemSpaceTimeFunctionArray : public NDArray<double, kDim> {
   const value_type& value(const index_type& index) const override;
 
   /**
-   * @brief Return interpolated data.
+   * @brief Return linear interpolated data.
    */
   value_type value(const cindex_type& index) const override;
 

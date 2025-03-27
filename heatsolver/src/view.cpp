@@ -4,6 +4,74 @@
 
 namespace heatsolver {
 
+namespace {
+std::unordered_map<
+    const ProblemSpaceTimeFunction*,
+    std::unordered_map<std::string, ProblemSpaceTimeFunction::value_type>>
+    problem_space_time_function_cache;
+}
+
+ProblemSpaceTimeFunction::ProblemSpaceTimeFunction(
+    std::function<cindex_type(const cindex_type&)> index_to_position,
+    std::function<value_type(const cindex_type&)> foo, const index_type& shape)
+    : m_index_to_position(std::move(index_to_position)),
+      m_foo(std::move(foo)),
+      m_shape(shape) {
+  problem_space_time_function_cache.emplace(
+      this, std::unordered_map<std::string, value_type>());
+}
+
+ProblemSpaceTimeFunction::~ProblemSpaceTimeFunction() {
+  problem_space_time_function_cache.erase(this);
+};
+
+ProblemSpaceTimeFunction::value_reference ProblemSpaceTimeFunction::value(
+    const index_type& index) {
+  auto str_idx = to_string(index);
+  if (problem_space_time_function_cache.at(this).find(str_idx) ==
+      problem_space_time_function_cache.at(this).end()) {
+    problem_space_time_function_cache.at(this).emplace(
+        str_idx,
+        m_foo(m_index_to_position(to_continious_index(std::move(index)))));
+  }
+  return problem_space_time_function_cache.at(this).at(str_idx);
+}
+
+ProblemSpaceTimeFunction::value_const_reference ProblemSpaceTimeFunction::value(
+    const index_type& index) const {
+  auto str_idx = to_string(index);
+  if (problem_space_time_function_cache.at(this).find(str_idx) ==
+      problem_space_time_function_cache.at(this).end()) {
+    problem_space_time_function_cache.at(this).emplace(
+        str_idx,
+        m_foo(m_index_to_position(to_continious_index(std::move(index)))));
+  }
+  return problem_space_time_function_cache.at(this).at(str_idx);
+}
+
+ProblemSpaceTimeFunction::index_type ProblemSpaceTimeFunction::unflat_index(
+    size_t index) const noexcept {
+  Index_t idx{};
+
+  size_t tmp_flat_shape = prod_components(m_shape);
+  for (size_t i = 0; i < kDim; ++i) {
+    tmp_flat_shape /= m_shape[i];
+    idx[i] = index / tmp_flat_shape;
+    index %= tmp_flat_shape;
+  }
+  return idx;
+}
+
+size_t ProblemSpaceTimeFunction::flat_index(
+    const ProblemSpaceTimeFunction::index_type& index) const noexcept {
+  size_t idx = 0;
+
+  for (size_t i = 0; i < kDim; ++i) {
+    idx = idx * m_shape[i] + index[i];
+  }
+  return idx;
+}
+
 ProblemSpaceTimeFunctionArray::index_type
 ProblemSpaceTimeFunctionArray::unflat_index(size_t index) const noexcept {
   Index_t idx{};

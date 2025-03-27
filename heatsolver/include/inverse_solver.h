@@ -1,13 +1,14 @@
 #pragma once
 
-#include <Eigen/Sparse>
 #include <memory>
 
-#include "Eigen/src/Core/Matrix.h"
 #include "view_impl.h"
 
 namespace heatsolver {
 
+/**
+ * @brief Holder struct for all necessary data
+ */
 struct InverseSolverData {
   using Mesh_t = SpaceTimeMesh<kDim>;
   using Function_t = NDArray<double, kDim>;
@@ -17,23 +18,33 @@ struct InverseSolverData {
   std::shared_ptr<Function_t> coefficient;
 };
 
+class InverseSolverPrivateData;
+
+/**
+ * @brief Finds heat conduction coefficient field by solving sparce linear
+ * equations system. The overdetermined system of equations is constructed from
+ * the temperature field measurements at each time step
+ */
 class InverseSolver {
  public:
-  using SpMat = Eigen::SparseMatrix<ProblemSpaceTimeFunctionArray::value_type>;
-  using SpVec = Eigen::SparseVector<ProblemSpaceTimeFunctionArray::value_type>;
-  using Vec = Eigen::VectorXd;
-  using Triplet = Eigen::Triplet<ProblemSpaceTimeFunctionArray::value_type>;
+  using value_type = ProblemSpaceTimeFunctionArray::value_type;
 
-  explicit InverseSolver(InverseSolverData data) : m_data(std::move(data)) {};
+  explicit InverseSolver(InverseSolverData data);
 
-  Eigen::VectorXd solve(double lambda);
+  /**
+   * @brief Solve inverse 2D heat problem of finding heat conduction coefficient
+   * field
+   *
+   * @param lambda "Smoothing" regularisation weight
+   */
+  void solve(double lambda);
 
  private:
   void assemble_system();
   void assemble_system_new(double lambda);
   void assemble_system_k(size_t time_idx);
   void assemble_rhs_k(size_t time_idx);
-  SpMat assemble_regularisation();
+  void assemble_regularisation(void* reg);
 
   InverseSolverData::Function_t::value_type rhs(Index_t index);
 
@@ -43,7 +54,6 @@ class InverseSolver {
 
   InverseSolverData m_data;
 
-  Vec m_rhs;
-  SpMat m_system;
+  std::shared_ptr<InverseSolverPrivateData> m_private_data;
 };
 }  // namespace heatsolver

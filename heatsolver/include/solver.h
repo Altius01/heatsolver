@@ -2,30 +2,19 @@
 
 #include <cstddef>
 #include <functional>
-#include <optional>
+#include <memory>
 
 // #include "problem.h"
 
 #include "view_impl.h"
 namespace heatsolver {
 
-// inline static std::optional<size_t> get_boundary_idx(size_t dim, Index_t
-// index,
-//                                                      Index_t shape) {
-//   for (size_t i = 0; i < index.size(); ++i) {
-//     if (dim == i) continue;
-//
-//     if (index[i] == 0 || index[i] == shape[i] - 1) {
-//       return i;
-//     }
-//   }
-//   return std::nullopt;
-// }
-
+/**
+ * @brief Holder struct for all necessary data
+ */
 struct HeatProblemData {
   using Mesh_t = SpaceTimeMesh<kDim>;
   using Function_t = NDArray<double, kDim>;
-
   std::shared_ptr<const Mesh_t> mesh;
   std::shared_ptr<Function_t> temperature;
   std::shared_ptr<const Function_t> heat_source;
@@ -33,6 +22,9 @@ struct HeatProblemData {
   std::array<std::shared_ptr<const Function_t>, kSpaceDim> dirichlet_boundary;
 };
 
+/**
+ * @brief Simple sequential realisation of Thomas algorith
+ */
 struct TriDiagMatrixSolver {
   TriDiagMatrixSolver() = default;
   explicit TriDiagMatrixSolver(size_t size)
@@ -56,25 +48,32 @@ struct TriDiagMatrixSolver {
   std::vector<double> m_q;
 };
 
+/**
+ * @brief Solver for forward (find temperature) heat equation in 2D
+ */
 class HeatSolver {
  public:
-  explicit HeatSolver(HeatProblemData data) : m_data(std::move(data)) {
+  explicit HeatSolver(std::shared_ptr<HeatProblemData> data)
+      : m_data(std::move(data)) {
     m_temporary_solution =
-        std::make_shared<ProblemSpaceFunctionArray>(m_data.mesh->shape());
+        std::make_shared<ProblemSpaceFunctionArray>(m_data->mesh->shape());
   };
 
-  void solve();
+  /**
+   * @brief Solves heat equation
+   */
+  virtual void solve();
 
- private:
-  void time_step(size_t time_index);
-  void assemble_and_solve_system(
+ protected:
+  virtual void time_step(size_t time_index);
+  virtual void assemble_and_solve_system(
       size_t dim, const HeatProblemData::Function_t &prev_solution,
       HeatProblemData::Function_t &next_solution, Index_t index,
       double time_step);
 
   friend class TriDiagMatrixSolver;
 
-  HeatProblemData m_data;
+  std::shared_ptr<HeatProblemData> m_data;
 
   std::shared_ptr<ProblemSpaceFunctionArray> m_temporary_solution;
   double m_cindex_time_step{0.5};
